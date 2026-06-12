@@ -1,188 +1,190 @@
 # TaskReminder
 
-每日任务扫描 + 紧迫度分级 + HTML 邮件提醒。为**同时推进多条研究线 + 有硬 deadline** 的场景设计。
+Write your todos in Markdown files. Get a daily task digest email every morning. No database, no web service.
 
-纯 Python，仅需 PyYAML。独立模块，不绑定任何框架。
+You maintain a handful of `.md` files. The tool scans them, sorts tasks by urgency (critical / warning / normal), and sends a formatted HTML email. Built for people juggling multiple research threads and too many deadlines.
 
-## 场景：为什么需要它？
+Pure Python, only requires PyYAML. Works standalone as a CLI tool — no AI assistant required. Also pairs well with AI coding agents (Claude Code, Cursor, etc.) for conversational task management.
 
-当你同时跟 5-6 条研究线，每条有不同的阶段和截止日期，每天打开电脑需要一眼知道 **今天该优先推什么**、**哪个快过期了**。
+For Chinese docs, see [README_CN.md](README_CN.md) and [部署流程.md](部署流程.md).
 
-TaskReminder 做的事情：
+## Why?
 
-1. 扫描你手写的 `task_NNN.md` 任务文件（Markdown + YAML frontmatter）
-2. 根据优先级和截止日期自动分三档：🔴 紧急 / 🟡 提醒 / ⚪ 一般
-3. 组装 HTML 邮件 — 每个任务行内嵌当前状态和下一步，顶部显示本周重点
-4. 每天早上定时发送到邮箱，手机/电脑打开就能看到
+When you're running 5-6 research threads, each with different stages and deadlines, you need to know at a glance: what to push today, and what's about to slip.
 
-不需要数据库，不需要 Web 服务，任务就是 Markdown 文件，随时改、随时生效。
+TaskReminder does exactly that:
 
-## 快速开始
+1. Scans your `task_NNN.md` files (Markdown + YAML frontmatter)
+2. Ranks every task by priority and deadline into three tiers: 🔴 critical / 🟡 warning / ⚪ normal
+3. Builds an HTML email — each task row shows current status and next steps, with this week's priorities at the top
+4. Delivers it to your inbox every morning, readable on phone or desktop
+
+## Quick Start
 
 ```bash
 git clone git@github.com:HanFei-hz/TaskReminder.git
 cd TaskReminder
 pip install pyyaml
 
-# 1. 配置 SMTP
+# 1. Configure SMTP
 cp config.template.json config.json
-# 编辑 config.json，填入你的邮箱和 SMTP 授权码
+# Edit config.json with your email and SMTP app password
 
-# 2. 修改任务目录路径
-# 打开 task_scanner.py，将 TASKS_DIR 改为你的 tasks/ 目录
+# 2. Point to your tasks directory
+# Open task_scanner.py, set TASKS_DIR to your tasks/ folder
 
-# 3. 终端预览
+# 3. Preview in terminal
 python reminder.py
 
-# 4. 发送邮件
+# 4. Send the email
 python reminder.py --send
 ```
 
-首次设置的详细步骤见 **[部署流程](部署流程.md)**。
+For detailed setup instructions, see [DEPLOYMENT.md](DEPLOYMENT.md).
 
-## 任务文件格式
+## Task File Format
 
-在 `tasks/` 目录下创建 `task_NNN.md`，格式如下：
+Create `task_NNN.md` files in your `tasks/` directory:
 
 ```markdown
 ---
 id: "001"
-title: 子刊 — 整机仿生推进
-project: 论文
+title: Sub-journal — Bio-inspired propulsion
+project: Paper
 status: active
 priority: P1
 deadline: "2026-08-15"
 ---
 
-## 当前状态
-- 更新补充说明中
-- 算法命名待统一
+## Current Status
+- Updating supplementary notes
+- Algorithm naming needs unification
 
-## 下一步
-- [ ] 与导师确认引言和讨论
-- [ ] 替换 DRL 表述、检查图表说明
+## Next Steps
+- [ ] Confirm intro and discussion with advisor
+- [ ] Replace DRL terminology, review figure captions
 ```
 
-- `status: active` 才会被扫描，设为 `archived` 自动跳过
-- `deadline` 不填则无截止提醒，仅按优先级分级
-- `## 当前状态` 和 `## 下一步` 会嵌入邮件正文
+- `status: active` is scanned; `archived` tasks are skipped automatically
+- Leave `deadline` empty if there's no hard cutoff
+- `## Current Status` and `## Next Steps` are embedded in the email body
 
-## 紧迫度规则
+## Urgency Rules
 
-| 条件 | 等级 |
-|------|------|
-| P1 已过期，或 P1 15 天内到期 | 🔴 紧急 |
-| P2 已过期，或 P2 7 天内到期 | 🟡 提醒 |
-| P1 无 deadline / 其余情况 | ⚪ 一般 |
+| Condition | Level |
+|-----------|-------|
+| P1 overdue, or P1 within 15 days | 🔴 Critical |
+| P2 overdue, or P2 within 7 days | 🟡 Warning |
+| P1 no deadline / everything else | ⚪ Normal |
 
-阈值可在 `task_scanner.py` 的 `compute_urgency()` 中调整。
+Thresholds can be adjusted in `task_scanner.py` → `compute_urgency()`.
 
-## 邮件效果
-
-每天早上 8 点的邮件长这样：
+## What the Email Looks Like
 
 ```
-📋 任务日报 — 2026-06-11
-6 个活跃任务
+📋 Task Digest — 2026-06-12
+6 active tasks
 
-📌 本周重点
-[你写在 phd_framework.md 里的本周计划]
+📌 This Week's Focus
+[Your weekly plan, read from phd_framework.md]
 
-🔴 紧急 (2)
-┌────────┬──────────────────────┬───────┐
-│ P1    │ 子刊 — 整机仿生推进    │ 剩60天 │
-│       │ 更新补充说明中...      │       │
-├────────┼──────────────────────┼───────┤
-│ P2    │ 中期答辩 PPT          │ 已逾期 │
-└────────┴──────────────────────┴───────┘
-🟡 提醒 (3)
-⚪ 一般 (1)
+🔴 Critical (2)
+┌────────┬──────────────────────────┬───────────┐
+│ P1     │ Sub-journal — Bio-imitation│ 60 days left │
+│        │ Updating notes...        │           │
+├────────┼──────────────────────────┼───────────┤
+│ P2     │ Mid-term defense PPT     │ Overdue   │
+└────────┴──────────────────────────┴───────────┘
+🟡 Warning (3)
+⚪ Normal (1)
 ```
 
-## 使用方式
+## Usage Workflow
 
-TaskReminder 的使用分成两个阶段：**任务定制（冷启动）** 和 **任务部署（日常更新）**。工作流完全不同。
+There are two distinct phases: **Task Bootstrapping** (one-time setup) and **Task Maintenance** (daily use).
 
-### 阶段一：任务定制（从零开始，只做一次）
+### Phase 1: Bootstrapping
 
-这个阶段的核心是把你的研究规划"翻译"成一堆 `task_NNN.md` 文件。工具本身不帮你生成任务 — 你需要手写或借助 AI agent 来写。
+Translate your research plan into `task_NNN.md` files. The tool doesn't generate tasks for you — you write them, or use an AI agent to help.
 
-**步骤：**
+**Steps:**
 
-1. **梳理全局规划** — 创建 `phd_framework.md`，想清楚：
-   - 你有几条研究线
-   - 每条的目标期刊 / 截稿日期
-   - 关键时间节点（答辩、回国、毕业盲审等）
-   - 本周优先推什么（写入 `## 本周重点计划`）
+1. **Create `phd_framework.md`** — your master plan:
+   - How many research threads
+   - Target journal / deadline for each
+   - Key milestones (defense, submission, graduation, etc.)
+   - This week's priorities (under `## This Week's Focus`)
 
-2. **为每条研究线建 task 文件** — 在 `tasks/` 下创建 `task_001.md` ~ `task_NNN.md`，每个文件包含：
+2. **Create task files** — `task_001.md` through `task_NNN.md` in your `tasks/` directory:
    ```markdown
    ---
    id: "001"
-   title: 子刊 — 整机仿生推进
-   project: 论文
+   title: Sub-journal — Bio-inspired propulsion
+   project: Paper
    status: active
    priority: P1
    deadline: "2026-08-15"
    ---
-   ## 当前状态
-   - 待开始，文献调研阶段
-   ## 下一步
-   - [ ] 阅读相关论文，整理方法对比表
+   ## Current Status
+   - Starting out, literature survey phase
+   ## Next Steps
+   - [ ] Read relevant papers, compile comparison table
    ```
-   - 此时"当前状态"可能还不具体 — 没关系，后续日常更新会逐步细化
-   - 不确定截止日期可以先不填，填错的后面在文件里改即可
+   - "Current Status" can be vague at first — you'll refine it over time
+   - Leave `deadline` blank if unsure; fix it in the file later
 
-3. **首封邮件验证** — 运行 `python reminder.py --send`，检查：
-   - 所有任务都出现在邮件里了吗
-   - 紧迫度分级合理吗（阈值不对去改 `task_scanner.py`）
-   - 本周重点区块正确显示了吗
+3. **Send the first email** — run `python reminder.py --send` and check:
+   - All tasks appear in the email
+   - Urgency levels make sense (adjust thresholds in code if needed)
+   - Weekly focus section shows correctly
 
-4. **设置定时调度** — 把 cron / Task Scheduler 配好，每天早 8 点自动发。之后就再也不用管定时器了。
+4. **Schedule daily delivery** — set up cron or Task Scheduler for 8 AM. Never touch the timer again.
 
-> **推荐**：这一步在 Claude Code 里配合 agent 做，说一句"帮我搭建博士任务框架"就能一次生成所有文件。详见 [skill.md](skill.md)。
+> **Tip**: Use an AI agent (Claude Code, Cursor, etc.) to bootstrap — "build my PhD task framework" generates all files in one go. See [skill.md](skill.md).
 
-### 阶段二：任务部署（日常，反复做）
+### Phase 2: Daily Maintenance
 
-任务文件都建好之后，你的日常工作就很简单了：
+Once tasks are set up, your day-to-day is minimal:
 
-- **改了东西** → 编辑对应 task 文件，改 `## 当前状态` 和 `## 下一步`
-- **每周一** → 更新 `phd_framework.md` 的 `## 本周重点计划`，当天早上的邮件就自动体现新计划
-- **新增论文线 / 子任务** → 新建一个 `task_NNN.md`，从第二天起自动出现在邮件里
-- **论文投出去了 / 任务完结** → frontmatter 改 `status: archived`，不再出现在邮件里
-- **截止日期变了** → 改 frontmatter 的 `deadline` 字段，紧迫度第二天自动重新算
+- **Made progress** → edit the task file's `## Current Status` and `## Next Steps`
+- **Every Monday** → update `## This Week's Focus` in `phd_framework.md`; tomorrow's email reflects it
+- **New thread / subtask** → create a new `task_NNN.md`; appears in tomorrow's email
+- **Paper submitted / task done** → change frontmatter to `status: archived`; gone from the email
+- **Deadline changed** → update the `deadline` field; urgency recalculated automatically
 
-日常维护不涉及任何代码改动 — 只改 Markdown 文件。每天早上 8 点邮件自动到。
+Zero code changes — just edit Markdown files. The email lands at 8 AM every day.
 
-## 定时发送
+## Scheduling
 
 ```bash
-# Linux/macOS cron: 每天早 8 点
+# Linux/macOS cron: daily at 8 AM
 0 8 * * * cd /path/to/TaskReminder && python reminder.py --send
 
 # Windows Task Scheduler
 schtasks /Create /TN "TaskReminder" /TR "python X:\path\to\reminder.py --send" /SC DAILY /ST 08:00
 ```
 
-## 文件结构
+## File Structure
 
 ```
 TaskReminder/
-├── task_scanner.py        扫描器：解析任务 + 计算紧迫度
-├── reminder.py            CLI 入口：组稿 HTML → 发送
-├── email_client.py        SMTP SSL 发送封装
-├── phd_framework.md       全局规划（本周重点 + 论文版图 + 关键节点）
-├── config.template.json   SMTP 配置模板
-├── skill.md               Claude Code agent 工作流说明
-├── 部署流程.md             详细部署指南（首次使用必读）
-└── README.md              本文件
+├── task_scanner.py        Scanner: parse tasks + compute urgency
+├── reminder.py            CLI entry: build HTML → send
+├── email_client.py        SMTP SSL sender
+├── phd_framework.md       Master plan (weekly focus + paper roadmap + milestones)
+├── config.template.json   SMTP config template
+├── skill.md               AI agent workflow guide
+├── DEPLOYMENT.md          Detailed setup guide (English)
+├── 部署流程.md              Detailed setup guide (Chinese)
+├── README.md              This file (English)
+└── README_CN.md           Chinese README
 ```
 
-## 依赖
+## Dependencies
 
 - Python 3.9+
-- PyYAML ≥ 6.0
+- PyYAML >= 6.0
 
-## 许可
+## License
 
 MIT
