@@ -132,18 +132,23 @@ Adjust thresholds in `task_scanner.py` → `compute_urgency()`.
 
 ## 7. Scheduling
 
+### Two-tier sending
+
+1. **On every update** (when using AI agent) — agent sends email immediately after modifying task files or `phd_framework.md`
+2. **Weekly fallback** — cron / Task Scheduler every Monday 8 AM
+
 ### Windows (Task Scheduler)
 
 ```cmd
-schtasks /Create /TN "TaskReminder" /TR "python X:\path\to\reminder.py --send" /SC DAILY /ST 08:00
+schtasks /Create /TN "TaskReminder" /TR "python X:\path\to\reminder.py --send" /SC WEEKLY /D MON /ST 08:00
 ```
 
 ### Linux / macOS (cron)
 
 ```bash
 crontab -e
-# Daily at 8 AM
-0 8 * * * cd /path/to/TaskReminder && python reminder.py --send
+# Every Monday 8 AM (weekly fallback)
+0 8 * * 1 cd /path/to/TaskReminder && python reminder.py --send
 ```
 
 ### AI Agent Trigger
