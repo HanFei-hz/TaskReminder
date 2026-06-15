@@ -6,7 +6,8 @@
 ## Triggers
 
 - User says "reminder" / "daily digest" / "what's on my plate" / "send report"
-- Scheduled daily auto-send via cron / Task Scheduler
+- **On every task update** — agent sends email immediately after modifying any `task_NNN.md` or `phd_framework.md`
+- Weekly auto-send via cron / Task Scheduler as fallback (every Monday)
 - Agent runs `python reminder.py --send`
 
 ## Core Flow
@@ -29,13 +30,18 @@
 
 ## Agent Workflow
 
-When user triggers a reminder or the daily schedule fires, the agent should:
+**On every task update** (when user reports progress and agent modifies task files or `phd_framework.md`), the agent must:
 
-1. **Scan tasks** — `python reminder.py` to preview terminal output, confirm active tasks
-2. **Check weekly focus** — open `phd_framework.md`, verify `## This Week's Focus` is up to date
-3. **Sync progress** — if user has verbally reported updates, sync to `task_NNN.md` before sending
-4. **Send** — `python reminder.py --send`
-5. **Report** — tell user whether the email was sent successfully
+1. **Sync** — write the update to `task_NNN.md` (frontmatter + `## Current Status` / `## Next Steps`) and `phd_framework.md`
+2. **Send immediately** — `python reminder.py --send`
+3. **Report** — tell user the email was sent
+
+**On weekly schedule** (Monday morning cron / Task Scheduler), the agent should:
+
+1. **Scan tasks** — `python reminder.py` to preview, confirm active tasks
+2. **Check weekly focus** — verify `## This Week's Focus` in `phd_framework.md` is current
+3. **Send** — `python reminder.py --send`
+4. **Report** — tell user whether the email was sent successfully
 
 ## Task File Template
 
