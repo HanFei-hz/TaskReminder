@@ -142,7 +142,7 @@ TaskReminder 的使用分成两个阶段：**任务定制（冷启动）** 和 *
    - 紧迫度分级合理吗（阈值不对去改 `task_scanner.py`）
    - 本周重点区块正确显示了吗
 
-4. **设置定时调度** — 把 cron / Task Scheduler 配好，每天早 8 点自动发。之后就再也不用管定时器了。
+4. **设置定时调度** — 把 cron / Task Scheduler 配好，**每周一**早 8 点自动发。之后就再也不用管定时器了。
 
 > **推荐**：这一步在 Claude Code 里配合 agent 做，说一句"帮我搭建博士任务框架"就能一次生成所有文件。详见 [skill.md](skill.md)。
 
@@ -150,23 +150,25 @@ TaskReminder 的使用分成两个阶段：**任务定制（冷启动）** 和 *
 
 任务文件都建好之后，你的日常工作就很简单了：
 
-- **改了东西** → 编辑对应 task 文件，改 `## 当前状态` 和 `## 下一步`
-- **每周一** → 更新 `phd_framework.md` 的 `## 本周重点计划`，当天早上的邮件就自动体现新计划
-- **新增论文线 / 子任务** → 新建一个 `task_NNN.md`，从第二天起自动出现在邮件里
+- **改了东西** → 编辑对应 task 文件，改 `## 当前状态` 和 `## 下一步`；如果通过 AI agent 修改，邮件即时发送
+- **每周一** → 定时兜底发送，同时更新 `phd_framework.md` 的 `## 本周重点计划`
+- **新增论文线 / 子任务** → 新建一个 `task_NNN.md`，立即触发邮件
 - **论文投出去了 / 任务完结** → frontmatter 改 `status: archived`，不再出现在邮件里
-- **截止日期变了** → 改 frontmatter 的 `deadline` 字段，紧迫度第二天自动重新算
+- **截止日期变了** → 改 frontmatter 的 `deadline` 字段，紧迫度自动重新算
 
-日常维护不涉及任何代码改动 — 只改 Markdown 文件。每天早上 8 点邮件自动到。
+两层发送机制：**每次变动立即发**（agent 修改任意文件后即时发送）+ **每周一早 8 点兜底**（cron 保底，确保即使一周没通过 agent 更新也能收到）。
 
 ## 定时发送
 
 ```bash
-# Linux/macOS cron: 每天早 8 点
-0 8 * * * cd /path/to/TaskReminder && python reminder.py --send
+# Linux/macOS cron: 每周一早 8 点（兜底）
+0 8 * * 1 cd /path/to/TaskReminder && python reminder.py --send
 
-# Windows Task Scheduler
-schtasks /Create /TN "TaskReminder" /TR "python X:\path\to\reminder.py --send" /SC DAILY /ST 08:00
+# Windows Task Scheduler: 每周一
+schtasks /Create /TN "TaskReminder" /TR "python X:\path\to\reminder.py --send" /SC WEEKLY /D MON /ST 08:00
 ```
+
+如果配合 AI agent 使用，每次任务变动也会即时发送，不需要等到周一。
 
 ## 文件结构
 
