@@ -146,23 +146,25 @@ Translate your research plan into `task_NNN.md` files. The tool doesn't generate
 
 Once tasks are set up, your day-to-day is minimal:
 
-- **Made progress** → edit the task file's `## Current Status` and `## Next Steps`
-- **Every Monday** → update `## This Week's Focus` in `phd_framework.md`; tomorrow's email reflects it
-- **New thread / subtask** → create a new `task_NNN.md`; appears in tomorrow's email
+- **Made progress** → edit the task file's `## Current Status` and `## Next Steps`; email is sent immediately when using an AI agent
+- **Every Monday** → update `## This Week's Focus` in `phd_framework.md`; weekly email goes out as fallback
+- **New thread / subtask** → create a new `task_NNN.md`; email sent right away
 - **Paper submitted / task done** → change frontmatter to `status: archived`; gone from the email
 - **Deadline changed** → update the `deadline` field; urgency recalculated automatically
 
-Zero code changes — just edit Markdown files. The email lands at 8 AM every day.
+Two sending modes: **on every update** (agent sends immediately after any file change) + **weekly Monday 8 AM** (cron as safety net).
 
 ## Scheduling
 
 ```bash
-# Linux/macOS cron: daily at 8 AM
-0 8 * * * cd /path/to/TaskReminder && python reminder.py --send
+# Linux/macOS cron: every Monday 8 AM (weekly fallback)
+0 8 * * 1 cd /path/to/TaskReminder && python reminder.py --send
 
-# Windows Task Scheduler
-schtasks /Create /TN "TaskReminder" /TR "python X:\path\to\reminder.py --send" /SC DAILY /ST 08:00
+# Windows Task Scheduler: weekly Monday
+schtasks /Create /TN "TaskReminder" /TR "python X:\path\to\reminder.py --send" /SC WEEKLY /D MON /ST 08:00
 ```
+
+When using an AI agent (Claude Code, Cursor, etc.), email is also sent **immediately on every task update** — so you're never behind between weekly rounds.
 
 ## File Structure
 
