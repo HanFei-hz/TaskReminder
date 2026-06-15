@@ -8,7 +8,8 @@
 ## 触发条件
 
 - 用户说"发提醒" / "发送日报" / "今天有什么任务" / "reminder"
-- 每天早上定时自动发送（通过 cron / Task Scheduler）
+- **每次任务有变动** — agent 修改了任意 `task_NNN.md` 或 `phd_framework.md` 后，立即发送邮件
+- 每周一定时自动发送（通过 cron / Task Scheduler），作为兜底
 - agent 执行 `python reminder.py --send`
 
 ## 核心流程
@@ -31,13 +32,18 @@
 
 ## agent 工作流
 
-当用户说"提醒"或每天定时触发时，agent 应：
+**每次任务变动时**（用户汇报进度，agent 修改了 task 文件或 `phd_framework.md`），agent 必须：
+
+1. **同步** — 将更新写入 `task_NNN.md`（frontmatter + `## 当前状态` / `## 下一步`）和 `phd_framework.md`
+2. **立即发送** — `python reminder.py --send`
+3. **报告** — 告知用户邮件是否发送成功
+
+**每周一定时兜底时**（cron / Task Scheduler），agent 应：
 
 1. **扫描任务** — `python reminder.py` 先看终端输出，确认有活跃任务
 2. **检查本周重点** — 打开 `phd_framework.md`，确认 `## 本周重点计划` 是否最新
-3. **检查任务状态** — 如果用户口头更新过进度，先同步到 `task_NNN.md` 再发送
-4. **发送** — `python reminder.py --send`
-5. **报告结果** — 告知用户邮件是否发送成功
+3. **发送** — `python reminder.py --send`
+4. **报告结果** — 告知用户邮件是否发送成功
 
 ## 任务文件模板
 
